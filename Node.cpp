@@ -104,6 +104,106 @@ bool Node::dump () const
     return true;
 }
 
+bool Node::dumpTEX (char * filename) const
+{
+    if (!filename)
+    THROW (NULL_POINTER);
+
+    FILE *tex_file = fopen (filename, "wb");
+    if (!tex_file)
+    THROW (CANNOT_OPEN_FILE);
+
+    fprintf (tex_file, "\\documentclass{article}\n\\begin{document}\n$");
+    dump_node_in_tex (tex_file);
+    fprintf (tex_file, "$\n\\end{document}\n");
+
+    fclose (tex_file);
+}
+
+void Node::dump_node_in_tex (FILE * tex_file) const
+{
+    if (!tex_file)
+        THROW (NULL_POINTER);
+
+    if (left_ && mf_ == MF_DIV)
+    {
+        fprintf (tex_file, "\\frac{");
+        left_->dump_node_in_tex (tex_file);
+        fprintf (tex_file, "}{");
+        right_->dump_node_in_tex (tex_file);
+        fprintf (tex_file, "}");
+    }
+    else
+    {
+        if (left_)
+            left_->dump_node_in_tex (tex_file);
+
+        switch (type_)
+        {
+            default:
+            case NAT:
+                THROW (BAD_NODE);
+                break;
+            case VAL:
+                fprintf (tex_file, "(%g)", val_);
+                break;
+            case VAR:
+                fprintf (tex_file, "%c", var_);
+                break;
+            case MF:
+                switch (mf_)
+                {
+                    default:
+                    case MF_NAF:
+                        THROW (BAD_NODE);
+                        break;
+                    case MF_ADD:
+                        fprintf (tex_file, "+");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_SUB:
+                        fprintf (tex_file, "-");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_MUL:
+                        fprintf (tex_file, "*");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_SIN:
+                        fprintf (tex_file, "sin(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_COS:
+                        fprintf (tex_file, "cos(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_TG:
+                        fprintf (tex_file, "tg(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_CTG:
+                        fprintf (tex_file, "ctg(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_EXP:
+                        fprintf (tex_file, "exp(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_LN:
+                        fprintf (tex_file, "ln(");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                }
+        }
+    }
+}
+
 void Node::dump_node (FILE * dump_file, size_t shift) const
 {
     if (left_)
@@ -220,17 +320,36 @@ Node & Node::diff (char variable)
                 case MF_DIV:
                     return (dL * cR - cL * dR) / (cR * cR);
                 case MF_SIN:
-                    return dR * COS;
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR * COS;
+
                 case MF_COS:
-                    return dR * MINUS_SIN;
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR * MINUS_SIN;
                 case MF_TG:
-                    return dR / (COS * COS);
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR / (COS * COS);
                 case MF_CTG:
-                    return dR / (MINUS_SIN * SIN);
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR / (MINUS_SIN * SIN);
                 case MF_EXP:
-                    return dR * EXP;
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR * EXP;
                 case MF_LN:
-                    return dR / cR;
+                    if (right_->type_ == VAR && right_->var_ != variable)
+                        return *(new Node (0.0));
+                    else
+                        return dR / cR;
             }
     }
 #undef dL;

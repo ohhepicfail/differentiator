@@ -5,11 +5,13 @@ Node * syntactic_parcer (char ** expression);
 
 int main ()
 {
-    char * str = "(ln(x)) + (x)";
+    char * str = "(exp(x)) + (ln((x) * (x))";
+    // strange thing   ((ln(x)) + (x))*((cos(x)) / (ctg(y))
     Node * new_nd = syntactic_parcer (&str);
     Node * nnd = &new_nd->diff ('x');
     new_nd->del ();
     nnd->dump ();
+    nnd->dumpTEX ("math.tex");
     nnd->del ();
 
     return 0;

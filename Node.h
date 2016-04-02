@@ -40,9 +40,11 @@ public:
     ~Node ();
 
     bool is_ok () const;
-    bool dump () const;
     void del ();
     Node & copy ();
+
+    bool dump () const;
+    bool dumpTEX (char * filename) const;
 
     Node & diff (char variable);
 
@@ -58,6 +60,7 @@ private:
     Node * right_;
 
     void dump_node (FILE * dump_file, size_t shift) const;
+    void dump_node_in_tex (FILE * tex_file) const;
 };
 
 Node & operator+ (Node & left, Node & right);
