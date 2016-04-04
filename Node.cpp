@@ -243,7 +243,7 @@ void Node::del ()
     delete this;
 }
 
-Node & Node::copy ()
+Node & Node::copy () const
 {
     if (!is_ok ())
         THROW (BAD_NODE);

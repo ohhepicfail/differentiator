@@ -28,7 +28,10 @@ enum error_type
     NULL_POINTER,       //! pointer is null
     BAD_NODE,           //! something in this node is bad
     CANNOT_OPEN_FILE,   //! name speaks for itself. Doesn't it?
-    BAD_EXPRESSION      //! something is wrong in input expression
+    BAD_EXPRESSION,     //! something is wrong in input expression
+    W_NOT_ALL_READ,     //! this warning is throwing if not all file was read
+    CANNOT_ALLOC_MEMORY,//! I think you understand me:)
+    NULL_EXPRESSION     //! expression wasn't loaded in the object
 };
 
 //! @brief class to work with errors

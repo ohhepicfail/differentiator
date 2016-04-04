@@ -41,7 +41,7 @@ public:
 
     bool is_ok () const;
     void del ();
-    Node & copy ();
+    Node & copy () const;
 
     bool dump () const;
     bool dumpTEX (char * filename) const;
@@ -61,6 +61,8 @@ private:
 
     void dump_node (FILE * dump_file, size_t shift) const;
     void dump_node_in_tex (FILE * tex_file) const;
+
+    const Node & operator= (const Node & that);
 };
 
 Node & operator+ (Node & left, Node & right);
