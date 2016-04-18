@@ -36,7 +36,7 @@ Expression_parser::Expression_parser (const Expression_parser & that)
     }
 }
 
-void Expression_parser::get_expression (char * filename)
+void Expression_parser::get_code (char *filename)
 {
     if (!filename)
         THROW (NULL_POINTER);
@@ -77,7 +77,6 @@ Node *Expression_parser::text_parse ()
     Node *right_n  = NULL;
     while (code_ - code_begin_ < code_size_ - 1)
     {
-
         right_n = full_if_while_parse ();
 
         if (node == NULL)
@@ -95,17 +94,12 @@ Node *Expression_parser::full_if_while_parse ()
         THROW (NULL_EXPRESSION);
 
     Node *right_n  = NULL;
-
     try {right_n = str_parse ();} catch (Error err) {throw err;}
     if (!right_n)
         return NULL;
-    if (*code_ == '\n')
-        code_++;
+    skip_new_line_symb ();
 
-    if (right_n->get_mf () == MF_EQ     ||
-        right_n->get_mf () == MF_NOTEQ  ||
-        right_n->get_mf () == MF_LARGER ||
-        right_n->get_mf () == MF_SMALLER)
+    if (is_conditions (right_n->get_mf ()))
     {
         Node *left_n = right_n;
         unsigned char old_n_if = n_if_;
@@ -114,11 +108,7 @@ Node *Expression_parser::full_if_while_parse ()
             THROW (BAD_IF_OR_WHILE);
 
         Node *extra_node = NULL;
-        if (old_n_if <= n_if_ && (
-            right_n->get_mf () == MF_EQ     ||
-            right_n->get_mf () == MF_NOTEQ  ||
-            right_n->get_mf () == MF_LARGER ||
-            right_n->get_mf () == MF_SMALLER))
+        if (old_n_if <= n_if_ && is_conditions (right_n->get_mf ()))
         {
             try {extra_node = full_if_while_parse ();} catch (Error err) {throw err;}
             if (!extra_node)
@@ -127,26 +117,17 @@ Node *Expression_parser::full_if_while_parse ()
         }
         else
         {
-            size_t n_vert_dash = 0;
-            char *symb = code_;
-            while (*symb != '\0' && *symb != '\n')
-                if (*(symb++) == '|')
-                    n_vert_dash++;
+            size_t n_vert_dash = count_vertical_dash ();
             while (old_n_if <= n_vert_dash)
             {
                 try {extra_node = full_if_while_parse ();} catch (Error err) {throw err;}
                 right_n = new Node (MF_CODE, right_n, extra_node);
 
-                n_vert_dash = 0;
-                symb = code_;
-                while (*symb != '\0' && *symb != '\n')
-                    if (*(symb++) == '|')
-                        n_vert_dash++;
+                n_vert_dash = count_vertical_dash ();
             }
         }
 
-        if (*code_ == '\n')
-            code_++;
+        skip_new_line_symb ();
 
         if (if_or_while_)
             right_n = new Node (MF_IF, left_n, right_n);
@@ -275,19 +256,20 @@ Node *Expression_parser::assign_parse ()
 
     Node *left_n = NULL;
     Node *right_n = NULL;
-    if ('a' <= *code_ && *code_ <= 'z')
+    if (isalpha (*code_))
         try {left_n = var_parse ();} catch (Error err) {throw err;}
     else
         THROW (BAD_EXPRESSION);
 
     skip_spaces ();
-    char assignment[3] = {'\0', '\0', '\0'};
-    strncpy (assignment, code_, 2);
+    unsigned char eq_symb_len = 2;          // <-
+    char assignment[eq_symb_len + 1] = {'\0', '\0', '\0'};
+    strncpy (assignment, code_, eq_symb_len);
 
     Node *node = left_n;
     if (strcmp (assignment, "<-") == 0)
     {
-        code_ += 2;
+        code_ += eq_symb_len;
         skip_spaces ();
 
         if (*code_ == '?')
@@ -312,7 +294,7 @@ Node *Expression_parser::assign_parse ()
             else
                 THROW (BAD_NODE);
 
-            right_n = new Node (mf, &left_n->copy (), right_n->get_right ());
+            right_n = new Node (mf, &left_n->copy (), right_n->give_and_forget_right ());
         }
         skip_spaces ();
 
@@ -435,9 +417,9 @@ Node *Expression_parser::p_parse ()
     skip_spaces ();
 
     Node *node = NULL;
-    if ('a' <= *code_ && *code_ <= 'z')
+    if (isalpha (*code_))
         try {node = var_parse ();} catch (Error err) {throw err;}
-    else if ('0' <= *code_ && *code_ <= '9')
+    else if (isdigit (*code_))
         try {node = num_parse ();} catch (Error err) {throw err;}
     else if (*code_ == '(')
     {
@@ -476,7 +458,7 @@ Node *Expression_parser::num_parse ()
         THROW (BAD_EXPRESSION);
 
     long long int num = 0;
-    while ('0' <= *code_ && *code_ <= '9')
+    while (isdigit (*code_))
     {
         num = num * 10 + *code_ - '0';
         code_++;
@@ -498,4 +480,33 @@ void Expression_parser::skip_spaces ()
 
     while (isspace (*code_) && *code_ != '\n')
         code_++;
+}
+
+void Expression_parser::skip_new_line_symb ()
+{
+    if (*code_ == '\n')
+        code_++;
+}
+
+size_t Expression_parser::count_vertical_dash ()
+{
+    size_t n_vert_dash = 0;
+    char *symb = code_;
+    while (*symb != '\0' && *symb != '\n')
+        if (*(symb++) == '|')
+            n_vert_dash++;
+
+    return n_vert_dash;
+}
+
+
+bool Expression_parser::is_conditions (Math_Func mf)
+{
+    if (mf == MF_EQ     ||
+        mf == MF_NOTEQ  ||
+        mf == MF_LARGER ||
+        mf == MF_SMALLER)
+        return true;
+    else
+        return false;
 }

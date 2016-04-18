@@ -15,7 +15,7 @@ public:
     ~Expression_parser ();
     Expression_parser (const Expression_parser & that);
 
-    void get_expression (char *filename);
+    void get_code (char *filename);
     Node *parse ();
 private:
     char *code_;
@@ -37,7 +37,11 @@ private:
     Node *p_parse ();
     Node *var_parse ();
     Node *num_parse ();
+
     void skip_spaces ();
+    void skip_new_line_symb ();
+    size_t count_vertical_dash ();
+    static bool is_conditions (Math_Func mf);
 };
 
 

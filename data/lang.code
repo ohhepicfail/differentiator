@@ -23,16 +23,13 @@ code func : a, b;		//function with arguments
 @
 @	answer <- counter;
 @
-@	exitwith answer, a, b
+@	exitwith : answer, a, b
 
 
 code start:;
-@
 @	n <- 10;
 @	n <- + 1
-@
 @	res <- func : n, 1;
-@
 
 
 if

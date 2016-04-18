@@ -5,7 +5,7 @@
 int main ()
 {
     Expression_parser expression;
-    expression.get_expression ("data/exp.txt");
+    expression.get_code ("data/exp1.txt");
     Node * exp_node = NULL;
     try {exp_node = expression.parse ();} catch (Error err) {err.print_error (); return 1;}
 //    exp_node->simplify ();

@@ -28,7 +28,7 @@ enum Math_Func
     MF_CTG,
     MF_EXP,
     MF_LN,
-    MF_UADD,
+    MF_UADD,        //unary
     MF_USUB,
     MF_UMUL,
     MF_UDIV,
@@ -63,9 +63,8 @@ public:
     Node & diff (char variable);
     bool simplify ();
 
-    Node *get_right ();
-    Node *get_left ();
-    Node **get_pright ();
+    Node *give_and_forget_right ();
+    Node *give_and_forget_left ();
     Math_Func get_mf ();
 
 private:

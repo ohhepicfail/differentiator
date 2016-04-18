@@ -642,19 +642,20 @@ Node & operator/ (Node & left, Node & right)
     return *(new Node (MF_DIV, &left, &right));
 }
 
-Node *Node::get_right ()
+Node *Node::give_and_forget_right ()
 {
-    return right_;
+    Node *node = right_;
+    right_ = NULL;
+
+    return node;
 }
 
-Node *Node::get_left ()
+Node *Node::give_and_forget_left ()
 {
-    return left_;
-}
+    Node *node = left_;
+    left_ = NULL;
 
-Node **Node::get_pright ()
-{
-    return &right_;
+    return node;
 }
 
 Math_Func Node::get_mf ()
