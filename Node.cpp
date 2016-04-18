@@ -2,6 +2,8 @@
 // Created by epicfail on 29.03.16.
 //
 
+#include <math.h>
+#include <assert.h>
 #include "Node.h"
 #include "Error.h"
 
@@ -39,7 +41,7 @@ bool Node::is_ok () const
     bool correct = true;
 
     if (!this)
-        correct = false;
+        return false;
 
     switch (type_)
     {
@@ -64,6 +66,11 @@ bool Node::is_ok () const
                 case MF_CTG:
                 case MF_EXP:
                 case MF_LN:
+                case MF_UADD:
+                case MF_USUB:
+                case MF_UMUL:
+                case MF_UDIV:
+                case MF_PRINT:
                     if (!right_ || left_)
                         correct = false;
                     break;
@@ -71,6 +78,18 @@ bool Node::is_ok () const
                 case MF_SUB:
                 case MF_MUL:
                 case MF_DIV:
+                case MF_ASSIGN:
+                case MF_EQ:
+                case MF_NOTEQ:
+                case MF_LARGER:
+                case MF_SMALLER:
+                    break;
+                case MF_READ:
+                    if (right_ || left_)
+                        correct = false;
+                    break;
+                case MF_CODE:
+                case MF_IF:
                     break;
             }
             break;
@@ -84,22 +103,25 @@ bool Node::is_ok () const
     return correct;
 }
 
-bool Node::dump () const
+bool Node::dumpDOT () const
 {
     if (!is_ok ())
         THROW (BAD_NODE);
 
-    FILE * dump_file = fopen ("dump.txt", "wb");
-    if (!dump_file)
+    FILE * dot_file = fopen ("data/dump.dot", "wb");
+    if (!dot_file)
         THROW (CANNOT_OPEN_FILE);
 
-    try { this->dump_node (dump_file, 1);}
+    fprintf (dot_file, "digraph vk\n{\n");
+    try {
+        this->dump_node_in_dot (dot_file);}
     catch (Error err)
     {
         err.print_error ();
     }
+    fprintf (dot_file, "}\n");
 
-    fclose (dump_file);
+    fclose (dot_file);
 
     return true;
 }
@@ -124,6 +146,8 @@ void Node::dump_node_in_tex (FILE * tex_file) const
 {
     if (!tex_file)
         THROW (NULL_POINTER);
+    if (!this)
+        return;
 
     if (left_ && mf_ == MF_DIV)
     {
@@ -158,15 +182,22 @@ void Node::dump_node_in_tex (FILE * tex_file) const
                         THROW (BAD_NODE);
                         break;
                     case MF_ADD:
+                    case MF_UADD:
                         fprintf (tex_file, "+");
                         right_->dump_node_in_tex (tex_file);
                         break;
                     case MF_SUB:
+                    case MF_USUB:
                         fprintf (tex_file, "-");
                         right_->dump_node_in_tex (tex_file);
                         break;
                     case MF_MUL:
+                    case MF_UMUL:
                         fprintf (tex_file, "*");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_UDIV:
+                        fprintf (tex_file, "/");
                         right_->dump_node_in_tex (tex_file);
                         break;
                     case MF_SIN:
@@ -199,22 +230,64 @@ void Node::dump_node_in_tex (FILE * tex_file) const
                         right_->dump_node_in_tex (tex_file);
                         fprintf (tex_file, ")");
                         break;
+                    case MF_ASSIGN:
+                        fprintf (tex_file, "=");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_READ:
+                        fprintf (tex_file, "READ ");
+                        break;
+                    case MF_PRINT:
+                        fprintf (tex_file, "PRINT (");
+                        right_->dump_node_in_tex (tex_file);
+                        fprintf (tex_file, ")");
+                        break;
+                    case MF_EQ:
+                        fprintf (tex_file, "==");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_NOTEQ:
+                        fprintf (tex_file, "!=");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_LARGER:
+                        fprintf (tex_file, ">");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_SMALLER:
+                        fprintf (tex_file, "<");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_CODE:
+                        fprintf (tex_file, "CODE ");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
+                    case MF_IF:
+                        fprintf (tex_file, "IF ");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
                 }
+                break;
         }
     }
 }
 
-void Node::dump_node (FILE * dump_file, size_t shift) const
+void Node::dump_node_in_dot (FILE *dump_file) const
 {
+    assert (dump_file);
+
     if (left_)
-        left_->dump_node (dump_file, shift + 1);
+    {
+        fprintf (dump_file, "\t%d->%d\n", this, this->left_);
+        left_->dump_node_in_dot (dump_file);
+    }
     if (right_)
-        right_->dump_node (dump_file, shift + 1);
+    {
+        fprintf (dump_file, "\t%d->%d\n", this, this->right_);
+        right_->dump_node_in_dot (dump_file);
+    }
 
-    for (size_t i = 0; i < shift; i++)
-        fprintf (dump_file, "----");
-
-    fprintf (dump_file, "%d\ttype: %2u\t", this, type_);
+    fprintf (dump_file, "\t%d [label = \"", this);
     switch (type_)
     {
         default:
@@ -222,16 +295,82 @@ void Node::dump_node (FILE * dump_file, size_t shift) const
             THROW (BAD_NODE);
             break;
         case VAR:
-            fprintf (dump_file, "data: char %c, int %d\t", var_, var_);
+            fprintf (dump_file, "VAR\\n char %c, int %d\\n", var_, var_);
             break;
         case VAL:
-            fprintf (dump_file, "data: double %lf\t", val_);
+            fprintf (dump_file, "VAL\\n double %g\\n", val_);
             break;
         case MF:
-            fprintf (dump_file, "data: Math_Func  %u\t", mf_);
-            break;
+            switch (mf_)
+            {
+                default:
+                case MF_NAF:
+                THROW (BAD_NODE);
+                    break;
+                case MF_ADD:
+                case MF_UADD:
+                    fprintf (dump_file, "+");
+                    break;
+                case MF_SUB:
+                case MF_USUB:
+                    fprintf (dump_file, "-");
+                    break;
+                case MF_MUL:
+                case MF_UMUL:
+                    fprintf (dump_file, "*");
+                    break;
+                case MF_DIV:
+                case MF_UDIV:
+                    fprintf (dump_file, "/");
+                    break;
+                case MF_SIN:
+                    fprintf (dump_file, "sin");
+                    break;
+                case MF_COS:
+                    fprintf (dump_file, "cos");
+                    break;
+                case MF_TG:
+                    fprintf (dump_file, "tg");
+                    break;
+                case MF_CTG:
+                    fprintf (dump_file, "ctg");
+                    break;
+                case MF_EXP:
+                    fprintf (dump_file, "exp");
+                    break;
+                case MF_LN:
+                    fprintf (dump_file, "ln");
+                    break;
+                case MF_ASSIGN:
+                    fprintf (dump_file, "=");
+                    break;
+                case MF_READ:
+                    fprintf (dump_file, "read");
+                    break;
+                case MF_PRINT:
+                    fprintf (dump_file, "print");
+                    break;
+                case MF_EQ:
+                    fprintf (dump_file, "==");
+                    break;
+                case MF_NOTEQ:
+                    fprintf (dump_file, "!=");
+                    break;
+                case MF_LARGER:
+                    fprintf (dump_file, ">");
+                    break;
+                case MF_SMALLER:
+                    fprintf (dump_file, "<");
+                    break;
+                case MF_CODE:
+                    fprintf (dump_file, "code");
+                    break;
+                case MF_IF:
+                    fprintf (dump_file, "if");
+                    break;
+            }
     }
-    fprintf (dump_file, "left: %8d\tright: %8d\n", left_, right_);
+    fprintf (dump_file, " \"]\n");
 }
 
 void Node::del ()
@@ -304,7 +443,7 @@ Node & Node::diff (char variable)
             if (var_ == variable)
                 return *(new Node (1.0));
             else
-                return *(new Node (var_));
+                return *(new Node (0.0));
         case MF:
             switch (mf_)
             {
@@ -362,6 +501,99 @@ Node & Node::diff (char variable)
 #undef MINUS_SIN;
 }
 
+bool Node::simplify ()
+{
+    if (!this)
+    {
+        WPRINT (NULL_POINTER);
+        return false;
+    }
+    try
+    {
+        if (left_)
+            left_->simplify ();
+        if (right_)
+            right_->simplify ();
+    }
+    catch (Error err)
+    {
+        err.print_error ();
+    }
+
+    if (type_ == MF && right_->type_ == VAL)
+    {
+        if (!left_)
+        {
+            double val = right_->val_ * M_PI / 180;
+            switch (mf_)
+            {
+                default:
+                case MF_NAF:
+                    THROW (BAD_NODE);
+                    break;
+                case MF_SIN:
+                    val = sin (val);
+                    break;
+                case MF_COS:
+                    val = cos (val);
+                    break;
+                case MF_TG:
+                    val = tan (val);
+                    break;
+                case MF_CTG:
+                    val = 1 / tan (val);
+                    break;
+                case MF_EXP:
+                    val = exp (right_->val_);
+                    break;
+                case MF_LN:
+                    val = right_->val_;
+                    if (val <= 0)
+                        THROW (BAD_EXPRESSION);
+                    val = log (val);
+                    break;
+            }
+            right_->del ();
+            type_ = VAL;
+            mf_ = MF_NAF;
+            val_ = val;
+            right_ = NULL;
+        }
+        else if (left_->type_ == VAL)
+        {
+            double val = left_->val_;
+            switch (mf_)
+            {
+                default:
+                case MF_NAF:
+                    THROW (BAD_NODE);
+                    break;
+                case MF_ADD:
+                    val += right_->val_;
+                    break;
+                case MF_SUB:
+                    val -= right_->val_;
+                    break;
+                case MF_MUL:
+                    val *= right_->val_;
+                    break;
+                case MF_DIV:
+                    if (right_->val_ == 0.0)
+                        THROW (BAD_EXPRESSION);
+                    val /= right_->val_;
+                    break;
+            }
+            right_->del ();
+            left_->del ();
+            right_ = NULL;
+            left_ = NULL;
+            mf_ = MF_NAF;
+            type_ = VAL;
+            val_ = val;
+        }
+    }
+}
+
 Node & operator+ (Node & left, Node & right)
 {
     if (!left.is_ok ())
@@ -400,5 +632,25 @@ Node & operator/ (Node & left, Node & right)
         THROW (BAD_NODE);
 
     return *(new Node (MF_DIV, &left, &right));
+}
+
+Node *Node::get_right ()
+{
+    return right_;
+}
+
+Node *Node::get_left ()
+{
+    return left_;
+}
+
+Node **Node::get_pright ()
+{
+    return &right_;
+}
+
+Math_Func Node::get_mf ()
+{
+    return mf_;
 }
 

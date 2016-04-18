@@ -1,18 +1,18 @@
 #include "Node.h"
-#include "Error.h"
 #include "Expression_parser.h"
+#include "Error.h"
 
 int main ()
 {
-//    char * str =      "((((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x))))/(((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x)))))/((((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x))))/(((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x)))))";
-//     "((((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x))))/(((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x)))))/((((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x))))/(((exp(x)) + (ln((x) * (x))))*((sin(((x)*(x))/((x) + (4)))) / (cos(x)))))"
-
     Expression_parser expression;
-    expression.get_expression ("exp.txt");
-    Node * exp_node = expression.parse ();
-    exp_node->dump ();
-    exp_node = &exp_node->diff ('x');
-    exp_node->dumpTEX ("math.tex");
+    expression.get_expression ("data/exp.txt");
+    Node * exp_node = NULL;
+    try {exp_node = expression.parse ();} catch (Error err) {err.print_error (); return 1;}
+//    exp_node->simplify ();
+    exp_node->dumpDOT ();
+//    exp_node = &exp_node->diff ('x');
+//    exp_node->simplify ();
+    exp_node->dumpTEX ("data/math.tex");
     exp_node->del ();
 
     return 0;

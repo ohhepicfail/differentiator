@@ -27,7 +27,20 @@ enum Math_Func
     MF_TG,
     MF_CTG,
     MF_EXP,
-    MF_LN
+    MF_LN,
+    MF_UADD,
+    MF_USUB,
+    MF_UMUL,
+    MF_UDIV,
+    MF_ASSIGN,
+    MF_READ,
+    MF_PRINT,
+    MF_EQ,
+    MF_NOTEQ,
+    MF_LARGER,
+    MF_SMALLER,
+    MF_CODE,
+    MF_IF
 };
 
 class Node
@@ -43,10 +56,16 @@ public:
     void del ();
     Node & copy () const;
 
-    bool dump () const;
+    bool dumpDOT () const;
     bool dumpTEX (char * filename) const;
 
     Node & diff (char variable);
+    bool simplify ();
+
+    Node *get_right ();
+    Node *get_left ();
+    Node **get_pright ();
+    Math_Func get_mf ();
 
 private:
     Type type_;
@@ -56,11 +75,11 @@ private:
         char var_;
         double val_;
     };
-    Node * left_;
-    Node * right_;
+    Node *left_;
+    Node *right_;
 
-    void dump_node (FILE * dump_file, size_t shift) const;
-    void dump_node_in_tex (FILE * tex_file) const;
+    void dump_node_in_dot (FILE *dump_file) const;
+    void dump_node_in_tex (FILE *tex_file) const;
 
     const Node & operator= (const Node & that);
 };

@@ -12,41 +12,46 @@ FILE * Error::log_file__ = NULL;
 
 Error::Error (error_type err, const char * filename, int line, const char * pretty_function)
 {
-    log_file__ = fopen ("error_log.txt", "wb");
+    err_child_ = false;
+    log_file__ = fopen ("data/error_log.txt", "wa");
     if (!log_file__)
     {
         printf ("sorry, but I can't open log file in %s line: %d. Bye\n", __FILE__, __LINE__);
+        fflush (log_file__);
         exit (1);
     }
 
     if (!filename)
     {
         fprintf (log_file__, "!--FILENAME IS NULL\t%s\t%d\t%s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+        fflush (log_file__);
         exit (1);
     }
     if (line <= 0)
     {
         fprintf (log_file__, "!--LINE <= 0\t%s\t%d\t%s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+        fflush (log_file__);
         exit (1);
     }
     if (!pretty_function)
     {
         fprintf (log_file__, "!--PRETTY_FUNCTION IS NULL\t%s\t%d\t%s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+        fflush (log_file__);
         exit (1);
     }
-    fflush (log_file__);
+
+    size_t filename_len = strlen (filename);
+    if (filename_len > NAME_LEN)
+        filename = &filename[filename_len - NAME_LEN + 1];
+    strncpy (filename_, filename, filename_len);
+
+    strncpy (function_, pretty_function, strlen (pretty_function));
+    function_[NAME_LEN - 1] = '\0';
 
     error_ = err;
     line_  = line;
 
-    size_t filename_len = strlen (filename);
-    if (filename_len < strlen (filename_))
-        filename = &filename[filename_len - strlen (filename_)];
-    strncpy (filename_, filename, filename_len);
-
-    strncpy (function_, pretty_function, strlen (pretty_function));
-
-    fprintf (log_file__, "error occured %lu |\t%s |\t%d |\t%s\n", ENUM_TO_STR (error_), filename_, line_, function_);
+    fprintf (log_file__, "error occured: Error: %lu |\tfile: %s |\tline: %d |\tfunction: %s\n", ENUM_TO_STR (error_), filename_, line_, function_);
     fflush (log_file__);
 
 }
@@ -60,10 +65,11 @@ Error::~Error ()
     for (size_t i = 0; i < strlen (function_); i++)
         function_[i] = '\0';
 
-    fclose (log_file__);
+    if (err_child_ == false)
+        fclose (log_file__);
 }
 
-Error::Error (const Error & that)
+Error::Error (Error & that)
 {
     if (!that.filename_)
     {
@@ -86,6 +92,7 @@ Error::Error (const Error & that)
     this->line_  = that.line_;
     strncpy (this->function_, that.function_, strlen (that.function_));
     strncpy (this->filename_, that.filename_, strlen (that.filename_));
+    that.err_child_ = true;
 }
 
 void Error::print_error ()

@@ -18,6 +18,8 @@
                                     oh_now_I_have_an_error.print_error ();\
                                 }
 
+#define NAME_LEN       40
+
 //{-------------------------------------------------------------------
 //! @brief enum with all errors
 //!
@@ -31,7 +33,8 @@ enum error_type
     BAD_EXPRESSION,     //! something is wrong in input expression
     W_NOT_ALL_READ,     //! this warning is throwing if not all file was read
     CANNOT_ALLOC_MEMORY,//! I think you understand me:)
-    NULL_EXPRESSION     //! expression wasn't loaded in the object
+    NULL_EXPRESSION,    //! expression wasn't loaded in the object
+    TOO_BIG_NUMBER      //! int overflow
 };
 
 //! @brief class to work with errors
@@ -61,10 +64,10 @@ public:
     //!
     //! @warning if !filename, line <= 0 or !pretty_function constructor write it in log_file__ and abort program
     //}-------------------------------------------------------------------
-    Error (const Error & that);
+    Error (Error & that);
 
     //{-------------------------------------------------------------------
-    //! @brief print last error into log_file__
+    //! @brief print last error into console
     //}-------------------------------------------------------------------
     void print_error ();
 
@@ -88,7 +91,7 @@ private:
     //!
     //! @warning I'm so sorry, but I must use const size, because otherwise there is a cycle:(
     //}-------------------------------------------------------------------
-    char filename_[256];
+    char filename_[NAME_LEN];
 
     //! @brief line where the error occured
     int line_;
@@ -98,7 +101,7 @@ private:
     //!
     //! @warning I'm so sorry, but I must use const size, because otherwise there is a cycle:(
     //}-------------------------------------------------------------------
-    char function_[256];
+    char function_[NAME_LEN];
 
     //! @brief number of error
     error_type error_;
@@ -109,6 +112,8 @@ private:
     //! @warning log_file__ updates every session
     //}-------------------------------------------------------------------
     static FILE * log_file__;
+
+    bool err_child_;
 };
 
 #endif //TREE_ERROR_H

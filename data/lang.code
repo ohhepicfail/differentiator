@@ -1,0 +1,59 @@
+n <- 10; 			// (присвоить)
+n					// print n
+123					// print 123
+n <- 10				// присвоить и распечатать
+n <- n + 10			// норм
+n <- 10 + n 		// тоже такой вариант будет. надо как-то разруливать его потом :(
+n <- * 10;
+n <- + 10;
+n <- / 10;
+n <- - 10;
+n <- ?;				// read
+counter <- * 1		// counter = counter and print
+//////////////////////////////////////////////////
+
+code func : a, b;		//function with arguments
+@
+@	< : a, b;
+@	|	tmp <- a;
+@	|	a <- b;
+@	|	b <- tmp
+@
+@
+@
+@	answer <- counter;
+@
+@	exitwith answer
+
+
+code start:;
+@
+@	n <- 10;
+@	n <- + 1
+@
+@	res <- func : n, 1;
+@
+
+
+if
+{
+	< : a, b;	if (a < b)
+	> : a, b;	if (a > b)
+	= : a, b;	if (a == b)
+	! : a, b;	if (a != b)
+
+	there are must go "|" after all ifs. When it ends, if ends.
+	Example:
+	{
+		a <- 10;
+		b <- 11;
+		< : a, b;
+		|	tmp <- a;
+		|	a <- b;
+		|	b <- tmp;
+		a
+		b
+	}
+}
+
+n <- * (1 + 5) * 8;		// n = n * ((1 + 5) * 8); 
