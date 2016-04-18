@@ -12,7 +12,9 @@
 Expression_parser::Expression_parser () :
     code_ (NULL),
     code_begin_ (NULL),
-    code_size_  (0)
+    code_size_  (0),
+    n_if_ (0),
+    if_or_while_ (false)
 {}
 
 Expression_parser::~Expression_parser ()
@@ -73,51 +75,86 @@ Node *Expression_parser::text_parse ()
 
     Node *node     = NULL;
     Node *right_n  = NULL;
-    Node ***prev_if_code = (Node ***) calloc (256, sizeof (Node**));
     while (code_ - code_begin_ < code_size_ - 1)
     {
-        try {right_n = str_parse ();} catch (Error err) {throw err;}
-        if (*code_ == '\n')
-            code_++;
 
-        if (right_n->get_mf () == MF_EQ     ||
-            right_n->get_mf () == MF_NOTEQ  ||
-            right_n->get_mf () == MF_LARGER ||
-            right_n->get_mf () == MF_SMALLER)
-        {
-            Node *left_n = right_n;
-            try {right_n = str_parse ();} catch (Error err) {throw err;}
-            if (*code_ == '\n')
-                code_++;
-
-            right_n = new Node (MF_IF, left_n, right_n);
-            prev_if_code[n_if_] = right_n->get_pright ();
-        }
-        else
-            prev_if_code[0] = right_n->get_pright ();
-
-        if (n_if_ > 1 && right_n->get_mf () == MF_IF)
-        {
-            *prev_if_code[n_if_-1] = new Node (MF_CODE, *prev_if_code[n_if_-1], right_n);
-            continue;
-        }
-        else if (n_if_ > 0 && right_n->get_mf () != MF_IF)
-        {
-            *prev_if_code[n_if_] = new Node (MF_CODE, *prev_if_code[n_if_], right_n);
-            continue;
-        }
-
+        right_n = full_if_while_parse ();
 
         if (node == NULL)
-        {
             node = right_n;
-            continue;
-        }
-
+        else
             node = new Node (MF_CODE, node, right_n);
     }
 
     return node;
+}
+
+Node *Expression_parser::full_if_while_parse ()
+{
+    if (!code_)
+        THROW (NULL_EXPRESSION);
+
+    Node *right_n  = NULL;
+
+    try {right_n = str_parse ();} catch (Error err) {throw err;}
+    if (!right_n)
+        return NULL;
+    if (*code_ == '\n')
+        code_++;
+
+    if (right_n->get_mf () == MF_EQ     ||
+        right_n->get_mf () == MF_NOTEQ  ||
+        right_n->get_mf () == MF_LARGER ||
+        right_n->get_mf () == MF_SMALLER)
+    {
+        Node *left_n = right_n;
+        unsigned char old_n_if = n_if_;
+        try {right_n = full_if_while_parse ();} catch (Error err) {throw err;}
+        if (right_n == NULL)
+            THROW (BAD_IF_OR_WHILE);
+
+        Node *extra_node = NULL;
+        if (old_n_if <= n_if_ && (
+            right_n->get_mf () == MF_EQ     ||
+            right_n->get_mf () == MF_NOTEQ  ||
+            right_n->get_mf () == MF_LARGER ||
+            right_n->get_mf () == MF_SMALLER))
+        {
+            try {extra_node = full_if_while_parse ();} catch (Error err) {throw err;}
+            if (!extra_node)
+                THROW (BAD_EXPRESSION);
+            right_n = new Node (MF_CODE, right_n, extra_node);
+        }
+        else
+        {
+            size_t n_vert_dash = 0;
+            char *symb = code_;
+            while (*symb != '\0' && *symb != '\n')
+                if (*(symb++) == '|')
+                    n_vert_dash++;
+            while (old_n_if <= n_vert_dash)
+            {
+                try {extra_node = full_if_while_parse ();} catch (Error err) {throw err;}
+                right_n = new Node (MF_CODE, right_n, extra_node);
+
+                n_vert_dash = 0;
+                symb = code_;
+                while (*symb != '\0' && *symb != '\n')
+                    if (*(symb++) == '|')
+                        n_vert_dash++;
+            }
+        }
+
+        if (*code_ == '\n')
+            code_++;
+
+        if (if_or_while_)
+            right_n = new Node (MF_IF, left_n, right_n);
+        else
+            right_n = new Node (MF_WHILE, left_n, right_n);
+    }
+
+    return right_n;
 }
 
 Node *Expression_parser::str_parse ()
@@ -148,12 +185,12 @@ Node *Expression_parser::prog_parse ()
     skip_spaces ();
 
     Node *node = NULL;
-    try {node = if_parse ();} catch (Error err) {throw err;}
+    try {node = if_while_parse ();} catch (Error err) {throw err;}
 
     return node;
 }
 
-Node *Expression_parser::if_parse ()
+Node *Expression_parser::if_while_parse ()
 {
     if (!code_)
         THROW (BAD_EXPRESSION);
@@ -170,7 +207,10 @@ Node *Expression_parser::if_parse ()
     Node *node = NULL;
     if (*code_ == '<' || *code_ == '>' ||
         *code_ == '=' || *code_ == '!')
+    {
         try {node = cond_parse ();} catch (Error err) {throw err;}
+        n_if_++;
+    }
     else
         try {node = assign_parse ();} catch (Error err) {throw err;}
 
@@ -198,7 +238,11 @@ Node *Expression_parser::cond_parse ()
     code_++;
 
     skip_spaces ();
-    if (*code_ != ':')
+    if (*code_ == '?')
+        if_or_while_ = true;    //if
+    else if (*code_ == ':')
+        if_or_while_ = false;   //while
+    else
         THROW (BAD_EXPRESSION);
     code_++;
     skip_spaces ();

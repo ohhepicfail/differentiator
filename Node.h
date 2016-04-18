@@ -40,7 +40,8 @@ enum Math_Func
     MF_LARGER,
     MF_SMALLER,
     MF_CODE,
-    MF_IF
+    MF_IF,
+    MF_WHILE
 };
 
 class Node

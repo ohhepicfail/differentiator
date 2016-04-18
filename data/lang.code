@@ -14,7 +14,7 @@ counter <- * 1		// counter = counter and print
 
 code func : a, b;		//function with arguments
 @
-@	< : a, b;
+@	< ? a, b;
 @	|	tmp <- a;
 @	|	a <- b;
 @	|	b <- tmp
@@ -23,7 +23,7 @@ code func : a, b;		//function with arguments
 @
 @	answer <- counter;
 @
-@	exitwith answer
+@	exitwith answer, a, b
 
 
 code start:;
@@ -47,7 +47,7 @@ if
 	{
 		a <- 10;
 		b <- 11;
-		< : a, b;
+		< ? a, b;
 		|	tmp <- a;
 		|	a <- b;
 		|	b <- tmp;
@@ -56,4 +56,3 @@ if
 	}
 }
 
-n <- * (1 + 5) * 8;		// n = n * ((1 + 5) * 8); 

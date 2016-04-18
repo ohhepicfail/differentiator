@@ -90,6 +90,7 @@ bool Node::is_ok () const
                     break;
                 case MF_CODE:
                 case MF_IF:
+                case MF_WHILE:
                     break;
             }
             break;
@@ -266,6 +267,10 @@ void Node::dump_node_in_tex (FILE * tex_file) const
                         fprintf (tex_file, "IF ");
                         right_->dump_node_in_tex (tex_file);
                         break;
+                    case MF_WHILE:
+                        fprintf (tex_file, "WHILE ");
+                        right_->dump_node_in_tex (tex_file);
+                        break;
                 }
                 break;
         }
@@ -367,6 +372,9 @@ void Node::dump_node_in_dot (FILE *dump_file) const
                     break;
                 case MF_IF:
                     fprintf (dump_file, "if");
+                    break;
+                case MF_WHILE:
+                    fprintf (dump_file, "while");
                     break;
             }
     }

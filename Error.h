@@ -34,7 +34,8 @@ enum error_type
     W_NOT_ALL_READ,     //! this warning is throwing if not all file was read
     CANNOT_ALLOC_MEMORY,//! I think you understand me:)
     NULL_EXPRESSION,    //! expression wasn't loaded in the object
-    TOO_BIG_NUMBER      //! int overflow
+    TOO_BIG_NUMBER,     //! int overflow
+    BAD_IF_OR_WHILE     //! in code
 };
 
 //! @brief class to work with errors

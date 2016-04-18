@@ -22,12 +22,14 @@ private:
     const char *code_begin_;
     long int code_size_;
     unsigned char n_if_;
+    bool if_or_while_;      //true if 'if' and false if 'while'
 
     Node *text_parse ();
+    Node *full_if_while_parse ();
     Node *str_parse ();
     Node *prog_parse ();
     Node *cond_parse ();
-    Node *if_parse ();
+    Node *if_while_parse ();
     Node *assign_parse ();
     Node *exp_parse ();
     Node *e_parse ();
